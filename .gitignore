@@ -1,0 +1,10 @@
+temp
+*.zip
+*.exe
+*.in
+*.out
+*.ans
+Trash/
+My Contest/
+**/.vscode/
+**/.cph-ng/

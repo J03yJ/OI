@@ -1,0 +1,12 @@
+function f(array a):
+    pos := 1
+    res := 0
+    let nxt[x] be an array such that nxt[x] is the smallest index y
+	such that y > x and a[y] > a[x],or undefined if no such y exists
+    while pos < n:
+        if a[pos] < a[n]:
+            res += a[nxt[pos]] - a[pos]
+            pos := nxt[pos]
+        else:
+            pos += 1
+    return res

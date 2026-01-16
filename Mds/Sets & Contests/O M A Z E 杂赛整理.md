@@ -1,7 +1,3 @@
-# O M A Z E 杂赛整理
-
-用于记录以 `maze.size` 形态出征的除 UCUP 外的 ICPC 赛制比赛。
-
 ## THUCP 2026 初赛
 
 ### A. Asian Soul
@@ -525,14 +521,289 @@ signed main(){
 
 对每种字母统计个数即可。
 
+```cpp
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define endl '\n'
+using ll=long long;
+const int N=5e5+9;
+
+int c[N][26],tot[26],n,m;
+string s[N];
+
+signed main(){
+	cin.tie(0),cout.tie(0);
+	ios::sync_with_stdio(0);
+
+	cin>>n>>m;
+	for(int i=1;i<=n;i++) cin>>s[i];
+
+	for(int i=1;i<=n;i++){
+		for(auto t:s[i]){
+			c[i][t-'A']++;
+			tot[t-'A']++;
+		}
+	}
+
+	for(int i=1;i<=n;i++){
+		ll tmp[26],res=LLONG_MAX,err=0;
+		for(int j=0;j<26;j++){
+			tmp[j]=1ll*m*(tot[j]-c[i][j])-c[i][j];
+			if(tot[j]-c[i][j]) res=min(res,tmp[j]/(tot[j]-c[i][j]));
+			err|=(tmp[j]<0);
+		}
+		if(err) cout<<-1<<' ';
+		else cout<<res<<' ';
+	}
+
+	cout<<endl;
+
+	return 0;
+}
+```
+
 ### B. Battle of Arrays
 
 不是我都猜对结论了怎么是假题啊。
 
+```cpp
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define endl '\n'
+
+inline void Solve(){
+	int n,m;
+	cin>>n>>m;
+	vector<int> a(n),b(m);
+	for(int &x:a) cin>>x;
+	for(int &x:b) cin>>x;
+
+	priority_queue<int> q[2];
+	for(int x:a) q[0].push(x);
+	for(int x:b) q[1].push(x);
+
+	for(int o=0;q[0].size()&&q[1].size();o^=1){
+		int x=q[o^1].top()-q[o].top();
+		q[o^1].pop();
+		if(x>0) q[o^1].push(x);
+	}
+
+	if(!q[0].size()) cout<<"Bob"<<endl;
+	else cout<<"Alice"<<endl;
+}
+
+signed main(){
+	cin.tie(0),cout.tie(0);
+	ios::sync_with_stdio(0);
+
+	int T;
+	cin>>T;
+	while(T--) Solve();
+
+	return 0;
+}
+```
+
 ### D. Doorway
 
-显然每个门要么滑倒最左边要么滑倒最右边，堆维护一下即可。
+显然每个门要么滑倒最左边要么滑倒最右边，枚举区间并的左端点，堆维护即可。
+
+```cpp
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define endl '\n'
+const int N=3e5+9;
+
+int k[N],lx[N],rx[N],lp[N],rp[N],it[N],s[N],n;
+vector<int> len[N];
+multiset<int> ls,rs;
+
+signed main(){
+	cin.tie(0),cout.tie(0);
+	ios::sync_with_stdio(0);
+
+	cin>>n;
+	for(int i=1;i<=n;i++){
+		cin>>k[i]>>lx[i]>>rx[i];
+		len[i].resize(k[i]);
+		for(int &x:len[i]) cin>>x;
+		s[i]=accumulate(len[i].begin(),len[i].end(),0);
+	}
+
+	int ans=0;
+	priority_queue<array<int,2>> q;
+	for(int i=1;i<=n;i++){
+		ls.insert(lp[i]=lx[i]);
+		rs.insert(rp[i]=rx[i]-s[i]);
+		it[i]=0;
+		if(it[i]<k[i]) q.push({-(lp[i]+len[i][it[i]]),i});
+	}
+
+	ans=max(ans,*rs.begin()-*ls.rbegin());
+	while(q.size()){
+		int i=q.top()[1];
+		q.pop();
+		ls.erase(ls.find(lp[i]));
+		rs.erase(rs.find(rp[i]));
+		ls.insert(lp[i]+=len[i][it[i]]);
+		rs.insert(rp[i]+=len[i][it[i]]);
+		it[i]++;
+		if(it[i]<k[i]) q.push({-(lp[i]+len[i][it[i]]),i});
+		ans=max(ans,*rs.begin()-*ls.rbegin());
+	}
+
+	cout<<ans<<endl;
+
+	return 0;
+}
+```
 
 ### G. Greta's Game
 
+考虑求解每个位置操作（即令 $a_i,a_{i+1}$ 加一）的次数 $x_i$，有限制 $x_i+x_{i-1}=a_i$。
+
+那么奇数就可以直接解出 $x_i$，然后答案是 $\displaystyle \max_{i=1}^n x_i$ 和 $\displaystyle \lceil \dfrac{\sum_{i=1}^nx_i}{n-1}\rceil$ 的较大值。
+
+偶数由于 $\displaystyle \lceil \dfrac{\sum_{i=1}^nx_i}{n-1}\rceil$ 总是固定，相当于要最小化 $\displaystyle \max_{i=1}^n x_i$。令 $x_1$ 为主元，那么 $x_i$ 和 $x_1$ 的关系无非就是一条斜率要么是 $1$ 要么是 $-1$ 的直线，求出合法区间内上包络线的最小值即为 $\displaystyle \min_x\max_{i=1}^n x_i$。
+
+```cpp
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define endl '\n'
+using ll=long long;
+const int N=5e5+9;
+
+int a[N],x[N],n;
+inline bool Check(int k){
+	ll sum=0;
+	for(int i=1;i<=n;i++){
+		if(x[i]>k) return 0;
+		sum+=k-x[i];
+	}
+	return sum>=k;
+}
+inline int T(){
+	int l=-1,r=1e9+7;
+	while(l+1<r){
+		int mid=l+r>>1;
+		if(Check(mid)) r=mid;
+		else l=mid;
+	}
+	return r;
+}
+
+inline void Solve(){
+	cin>>n;
+	for(int i=1;i<=n;i++) cin>>a[i];
+
+	if(n&1){
+		ll sum=0;
+		for(int i=2;i<=n;i++){
+			if(~i&1) sum+=a[i];
+			else sum-=a[i];
+		}
+		sum+=a[1];
+		x[1]=sum>>1;
+		for(int i=2;i<=n;i++) x[i]=a[i]-x[i-1];
+	}else{
+		ll bp=0,bn=-1e18,l=0,r=1e18,c=0;
+		for(int i=2;i<=n;i++){
+			if(~i&1) c+=a[i];
+			else c-=a[i];
+			if(~i&1){
+				bn=max(bn,c);
+				r=min(r,c);
+			}else{
+				bp=max(bp,-c);
+				l=max(l,c);
+			}
+		}
+		x[1]=min(max(bn-bp>>1,l),r);
+		for(int i=2;i<=n;i++) x[i]=a[i]-x[i-1];
+	}
+
+	cout<<T()<<endl;
+}
+
+signed main(){
+	cin.tie(0),cout.tie(0);
+	ios::sync_with_stdio(0);
+
+	int T;
+	cin>>T;
+	while(T--) Solve();
+
+	return 0;
+}
+```
+
 ### J. Jinx or Jackpot
+
+记 $a/b$ 表示 $b$ 局中胜了 $a$ 局，设 $P(a,b)$ 表示 $a/b$ 的情况下 $(a+1)/(b+1)$ 的概率。
+
+那么 $\displaystyle P(a,b)=P((a+1)/(b+1)|a/b)=\dfrac {\sum_{i=1}^np_i^{a+1}(1-p_i)^{b-a}}{\sum_{i=1}^np_i^a(1-p_i)^{b-a}}$。
+
+随便手玩一下发现要么 All in 要么远离赌博，设 $F(a,b)$ 表示目前 $a/b$，继续操作下去最多可以翻 $F(a,b)$ 倍。
+
+那么 $F(a,b)=\max(P(a,b)F(a+1,b+1)+(1-P(a,b))F(a,b+1),2P(a,b)F(a+1,b+1))$。
+
+答案就是 $10^3(F(0,0)-1)$，时间复杂度依实现为 $O(n+Ck^2)$ 或 $O(nk^2)$，其中 $C=100$。
+
+```cpp
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define endl '\n'
+using ld=long double;
+const int N=1e5+9;
+const int K=3e1+9;
+const ld eps=1e-12;
+
+int p[N],n,k;
+ld pw[N][K],qw[N][K],P[K][K],F[K][K];
+
+signed main(){
+	cin.tie(0),cout.tie(0);
+	ios::sync_with_stdio(0);
+
+	cin>>n>>k;
+	for(int i=1;i<=n;i++) cin>>p[i];
+
+	for(int i=1;i<=n;i++){
+		const ld t=p[i]/ld(100);
+		pw[i][0]=qw[i][0]=1;
+		for(int j=1;j<=k+1;j++){
+			pw[i][j]=pw[i][j-1]*t;
+			qw[i][j]=qw[i][j-1]*(1-t);
+		}
+	}
+
+	for(int i=0;i<=k;i++){
+		for(int j=i;j<=k;j++){
+			ld f=0,g=eps;
+			for(int o=1;o<=n;o++) f+=pw[o][i+1]*qw[o][j-i];
+			for(int o=1;o<=n;o++) g+=pw[o][i]*qw[o][j-i];
+			P[i][j]=f/g;
+		}
+	}
+	for(int i=0;i<=k;i++) F[i][k]=1;
+	for(int j=k-1;j>=0;j--){
+		for(int i=0;i<=j;i++){
+			F[i][j]=max(P[i][j]*F[i+1][j+1]+(1-P[i][j])*F[i][j+1],2*P[i][j]*F[i+1][j+1]);
+		}
+	}
+
+	cout<<fixed<<setprecision(10)<<1000*(F[0][0]-1)<<endl;
+
+	return 0;
+}
+```
